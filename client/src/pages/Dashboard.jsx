@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Users, Video, Clock, Bell, History, FileText, Download, X, Brain } from 'lucide-react';
+import { Calendar, Users, Video, Clock, History, FileText, Download, X, Brain } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
@@ -10,27 +10,6 @@ const Dashboard = () => {
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      message: 'Meeting "Team Sync" ended - Processing recording',
-      time: '2 minutes ago',
-      type: 'processing'
-    },
-    {
-      id: 2,
-      message: 'Meeting summary completed for "Project Review"',
-      time: '10 minutes ago',
-      type: 'completed'
-    },
-    {
-      id: 3,
-      message: 'Meeting reminder emails sent successfully',
-      time: '1 hour ago',
-      type: 'notification'
-    }
-  ]);
-  const [showNotifications, setShowNotifications] = useState(false);
 
   const upcomingMeetings = [
     {
@@ -139,65 +118,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
-      <nav className="bg-white shadow-md">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center h-16">
-            <Link to="/" className="flex items-center space-x-2">
-              <Video className="h-6 w-6 sm:h-7 sm:w-7 text-indigo-600" />
-              <span className="text-base sm:text-xl font-bold text-gray-800">MeetManager</span>
-            </Link>
-            
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link
-                to="/create-event"
-                className="text-sm sm:text-base bg-indigo-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-md hover:bg-indigo-700 whitespace-nowrap"
-              >
-                Create Event
-              </Link>
-              <Link
-                to="/dashboard"
-                className="text-sm sm:text-base text-gray-600 hover:text-indigo-600 px-2 py-1.5 whitespace-nowrap"
-              >
-                Dashboard
-              </Link>
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-full hover:bg-gray-100 relative"
-              >
-                <Bell className="h-5 w-5 sm:h-6 sm:w-6" />
-                <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Notifications Panel */}
-      {showNotifications && (
-        <div className="container mx-auto px-4 mt-4">
-          <div className="bg-white rounded-lg shadow-lg">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h3 className="font-semibold text-lg">Notifications</h3>
-              <button
-                onClick={() => setShowNotifications(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {notifications.map((notification) => (
-                <div key={notification.id} className="p-4 hover:bg-gray-50">
-                  <p className="text-sm text-gray-800">{notification.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Content */}
       <div className="container mx-auto px-4 pt-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

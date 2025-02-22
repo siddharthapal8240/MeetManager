@@ -1,8 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Video, Users, FileText, Bell, Clock, BarChart, Github, Twitter, Linkedin, Brain, Shield, Zap, Globe, MessageSquare } from 'lucide-react';
+import { useClerk, useUser } from '@clerk/clerk-react';
+import { useNavigate } from "react-router-dom";
 
 const Landing = () => {
+
+  const navigate = useNavigate();
+  const {openSignIn } = useClerk();
+  const { isSignedIn, user } = useUser();
+
+  const handleRedirect = () => {
+    navigate("/dashboard"); 
+  };
   const features = [
     {
       icon: <FileText className="h-8 w-8 text-indigo-600" />,
@@ -147,12 +157,17 @@ const Landing = () => {
               Get instant summaries, track attendance, and manage your meetings efficiently.
               Make every meeting count with our comprehensive solution.
             </p>
-            <Link
-              to="/login"
-              className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition-colors"
-            >
-              Get Started
-            </Link>
+            {isSignedIn 
+            ?<button onClick={handleRedirect}
+            className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition-colors"
+          >
+            Dashboard
+          </button>
+          :<button onClick={() => openSignIn({})} 
+          className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition-colors"
+        >
+          Get Started
+        </button> }
           </div>
         </div>
       </div>
@@ -190,7 +205,7 @@ const Landing = () => {
           <div className="max-w-4xl mx-auto rounded-lg overflow-hidden shadow-2xl">
             <div className="aspect-w-16 aspect-h-9">
               <video
-                className="w-full h-full object-cover"
+                className="w-1/4 h-full object-cover"
                 autoPlay
                 loop
                 muted
