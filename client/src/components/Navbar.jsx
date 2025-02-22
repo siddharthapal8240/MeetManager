@@ -1,15 +1,13 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Video, Calendar, LogIn } from 'lucide-react';
+import { Link,} from 'react-router-dom';
+import { Video} from 'lucide-react';
 import { useClerk, UserButton, useUser } from '@clerk/clerk-react';
 
 const Navbar = () => {
 
   const {openSignIn } = useClerk();
   const { isSignedIn, user } = useUser();
-  // const location = useLocation();
-  // const isLandingPage = location.pathname === '/';
-  // const isLoggedIn = location.pathname !== '/' && location.pathname !== '/login';
+
 
   return (
     <nav className="bg-white shadow-lg">
