@@ -18,13 +18,15 @@ const CreateEvent = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [eventBanner, setEventBanner] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [excelFile, setExcelFile] = useState(null);
+  const [excelFileName, setExcelFileName] = useState('');
 
   const handleAddField = () => {
     setFormFields([...formFields, { name: '', type: 'text', required: false }]);
   };
 
   const handleRemoveField = (index) => {
-    if (index > 1) { // Prevent removing Name and Email fields
+    if (index > 1) {
       const newFields = [...formFields];
       newFields.splice(index, 1);
       setFormFields(newFields);
@@ -39,10 +41,35 @@ const CreateEvent = () => {
     }
   };
 
+  const handleExcelUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const validExtensions = ['.xlsx', '.xls'];
+      const fileExtension = file.name.substring(file.name.lastIndexOf('.'));
+      
+      if (!validExtensions.includes(fileExtension)) {
+        toast.error('Please upload a valid Excel file (.xlsx or .xls)');
+        return;
+      }
+      
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size exceeds 10MB limit');
+        return;
+      }
+
+      setExcelFile(file);
+      setExcelFileName(file.name);
+    }
+  };
+
+  const handleRemoveExcel = () => {
+    setExcelFile(null);
+    setExcelFileName('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate required fields
     if (!eventName.trim()) {
       toast.error('Event name is required');
       return;
@@ -63,19 +90,74 @@ const CreateEvent = () => {
       toast.error('Meeting link is required');
       return;
     }
+    if (registrationType === 'excel' && !excelFile) {
+      toast.error('Please upload an Excel file with attendees');
+      return;
+    }
 
     setIsLoading(true);
-    
-    // Simulate event creation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    if (registrationType === 'form') {
-      setRegistrationLink('https://meetmanager.com/register/' + Math.random().toString(36).substr(2, 9));
-      setShowSuccess(true);
-    } else {
-      toast.success('Event created successfully!');
+
+    try {
+      const formData = new FormData();
+      formData.append('eventName', eventName);
+      formData.append('description', description);
+      formData.append('date', date);
+      formData.append('time', time);
+      formData.append('meetingLink', meetingLink);
+      formData.append('registrationType', registrationType);
+      
+      if (registrationType === 'form') {
+        formData.append('formFields', JSON.stringify(formFields));
+      }
+      if (eventBanner) {
+        formData.append('banner', eventBanner);
+      }
+      if (registrationType === 'excel' && excelFile) {
+        formData.append('excelFile', excelFile);
+      }
+
+      const response = await fetch('http://localhost:4000/api/events/create', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create event');
+      }
+
+      // Show toast notification for successful event creation
+      toast.success('Event created successfully!', {
+        duration: 4000,
+        position: 'top-right',
+      });
+
+      if (registrationType === 'form') {
+        setRegistrationLink(data.registrationLink);
+        setShowSuccess(true);
+      }
+
+      // Reset form
+      setEventName('');
+      setDescription('');
+      setDate('');
+      setTime('');
+      setMeetingLink('');
+      setEventBanner(null);
+      setPreviewUrl('');
+      setExcelFile(null);
+      setExcelFileName('');
+      setFormFields([
+        { name: 'Name', type: 'text', required: true },
+        { name: 'Email', type: 'email', required: true, locked: true }
+      ]);
+
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -105,13 +187,13 @@ const CreateEvent = () => {
                 <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
                 <div className="flex text-sm text-gray-600">
                   <label
-                    htmlFor="banner-upload"
+                    htmlFor="banner"
                     className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none"
                   >
                     <span>Upload a banner</span>
                     <input
-                      id="banner-upload"
-                      name="banner-upload"
+                      id="banner"
+                      name="banner"
                       type="file"
                       className="sr-only"
                       accept="image/*"
@@ -304,11 +386,44 @@ const CreateEvent = () => {
 
         {registrationType === 'excel' && (
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-sm text-gray-500">
-              Drag and drop your Excel file here, or click to browse
-            </p>
-            <input type="file" className="hidden" accept=".xlsx,.xls" />
+            {excelFile ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-center gap-2 text-gray-700">
+                  <Upload className="h-6 w-6" />
+                  <span className="text-sm">{excelFileName}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveExcel}
+                  className="text-red-600 hover:text-red-700 text-sm"
+                >
+                  Remove file
+                </button>
+              </div>
+            ) : (
+              <>
+                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <div className="flex text-sm text-gray-600 justify-center">
+                  <label
+                    htmlFor="excelFile"
+                    className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500"
+                  >
+                    <span>Upload Excel File</span>
+                    <input
+                      id="excelFile"
+                      name="excelFile"
+                      type="file"
+                      className="sr-only"
+                      accept=".xlsx,.xls"
+                      onChange={handleExcelUpload}
+                    />
+                  </label>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  Drag and drop your Excel file here (.xlsx, .xls) up to 10MB
+                </p>
+              </>
+            )}
           </div>
         )}
 
@@ -328,7 +443,6 @@ const CreateEvent = () => {
         </button>
       </form>
 
-      {/* Success Modal */}
       {showSuccess && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-lg max-w-md w-full">
