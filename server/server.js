@@ -6,7 +6,8 @@ import { fileURLToPath } from 'url';
 import connectDB from './config/mongodb.js';
 import userRouter from './routes/userRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
-import multer from 'multer';
+import videoRoutes from "./routes/videoRoutes.js";
+
 
 
 const PORT = process.env.PORT || 4000;
@@ -26,18 +27,19 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get('/', (req, res) => res.send('Api working!'));
 app.use('/api/user', userRouter);
 app.use('/api/events', eventRoutes);
+app.use('/api', videoRoutes);
 
 //Error handiling
 
 app.use((err, req, res, next) => {
-    if (err instanceof multer.MulterError) {
-      return res.status(400).json({ success: false, message: err.message });
-    }
-    if (err) {
-      return res.status(400).json({ success: false, message: err.message });
-    }
-    next();
-  });
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+  if (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+  next();
+});
 
 
 app.listen(PORT, () =>console.log('Server running on port'+ PORT));

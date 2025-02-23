@@ -23,6 +23,10 @@ const fileFilter = (req, file, cb) => {
     if (!['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(file.mimetype)) {
       return cb(new Error('File must be an Excel spreadsheet'));
     }
+  } else if (file.fieldname === 'meetingRecording') {
+    if (!file.mimetype.startsWith('video/')) {
+      return cb(new Error('Meeting recording must be a video file'));
+    }
   }
   cb(null, true);
 };
@@ -30,21 +34,21 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit, adjust as needed
 });
 
 router.post(
   '/create',
   upload.fields([
     { name: 'banner', maxCount: 1 },
-    { name: 'excelFile', maxCount: 1 }
+    { name: 'excelFile', maxCount: 1 },
+    { name: 'meetingRecording', maxCount: 1 } // Added meetingRecording
   ]),
   [
     check('eventName').notEmpty().withMessage('Event name is required'),
     check('description').notEmpty().withMessage('Description is required'),
     check('date').notEmpty().withMessage('Date is required'),
     check('time').notEmpty().withMessage('Time is required'),
-    check('meetingLink').isURL().withMessage('Valid meeting link is required'),
     check('registrationType').isIn(['form', 'excel']).withMessage('Invalid registration type')
   ],
   createEvent

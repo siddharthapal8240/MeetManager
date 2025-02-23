@@ -16,7 +16,7 @@ export const processVideoFile = async (videoFilePath) => {
     if (!audioUrl) return;
 
     const transcriptionResult = await processTranscription(audioUrl); 
-    if (transcriptionResult) return transcriptionResult;
+    if (transcriptionResult) return videoUrl;;
   } catch (error) {
     console.error("Error processing video file:", error);
   }

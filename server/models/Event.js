@@ -16,7 +16,7 @@ const eventSchema = new mongoose.Schema({
   description: { type: String, required: true },
   date: { type: Date, required: true },
   time: { type: String, required: true },
-  meetingLink: { type: String, required: true },
+  meetingRecording: { type: String, required: true }, // Changed from meetingLink
   registrationType: { 
     type: String, 
     enum: ['form', 'excel'], 

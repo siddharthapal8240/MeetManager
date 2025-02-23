@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, Upload, FormInput, Check, Image as ImageIcon, X, Link as LinkIcon } from 'lucide-react';
+import { Calendar, Clock, Upload, FormInput, Check, Image as ImageIcon, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const CreateEvent = () => {
@@ -7,7 +7,8 @@ const CreateEvent = () => {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [meetingLink, setMeetingLink] = useState('');
+  const [meetingRecording, setMeetingRecording] = useState(null); // Changed from meetingLink
+  const [meetingRecordingName, setMeetingRecordingName] = useState(''); // For display
   const [registrationType, setRegistrationType] = useState('form');
   const [formFields, setFormFields] = useState([
     { name: 'Name', type: 'text', required: true },
@@ -62,6 +63,32 @@ const CreateEvent = () => {
     }
   };
 
+  const handleMeetingRecordingUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const validExtensions = ['.mp4', '.mov', '.avi', '.mkv']; // Add more as needed
+      const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      
+      if (!validExtensions.includes(fileExtension)) {
+        toast.error('Please upload a valid video file (.mp4, .mov, .avi, .mkv)');
+        return;
+      }
+      
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit, adjust as needed
+        toast.error('File size exceeds 10MB limit');
+        return;
+      }
+
+      setMeetingRecording(file);
+      setMeetingRecordingName(file.name);
+    }
+  };
+
+  const handleRemoveMeetingRecording = () => {
+    setMeetingRecording(null);
+    setMeetingRecordingName('');
+  };
+
   const handleRemoveExcel = () => {
     setExcelFile(null);
     setExcelFileName('');
@@ -86,8 +113,8 @@ const CreateEvent = () => {
       toast.error('Time is required');
       return;
     }
-    if (!meetingLink) {
-      toast.error('Meeting link is required');
+    if (!meetingRecording) {
+      toast.error('Meeting recording is required');
       return;
     }
     if (registrationType === 'excel' && !excelFile) {
@@ -103,7 +130,7 @@ const CreateEvent = () => {
       formData.append('description', description);
       formData.append('date', date);
       formData.append('time', time);
-      formData.append('meetingLink', meetingLink);
+      formData.append('meetingRecording', meetingRecording); // Changed from meetingLink
       formData.append('registrationType', registrationType);
       
       if (registrationType === 'form') {
@@ -127,7 +154,6 @@ const CreateEvent = () => {
         throw new Error(data.message || 'Failed to create event');
       }
 
-      // Show toast notification for successful event creation
       toast.success('Event created successfully!', {
         duration: 4000,
         position: 'top-right',
@@ -143,7 +169,8 @@ const CreateEvent = () => {
       setDescription('');
       setDate('');
       setTime('');
-      setMeetingLink('');
+      setMeetingRecording(null);
+      setMeetingRecordingName('');
       setEventBanner(null);
       setPreviewUrl('');
       setExcelFile(null);
@@ -262,21 +289,47 @@ const CreateEvent = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">Meeting Link *</label>
-          <div className="mt-1 relative">
-            <input
-              type="url"
-              value={meetingLink}
-              onChange={(e) => setMeetingLink(e.target.value)}
-              className="w-full px-4 py-2 pl-10 border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Enter meeting link (e.g., Zoom, Google Meet)"
-              required
-            />
-            <LinkIcon className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
+          <label className="block text-sm font-medium text-gray-700">Meeting Recording *</label>
+          <div className="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+            {meetingRecording ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-center gap-2 text-gray-700">
+                  <Upload className="h-6 w-6" />
+                  <span className="text-sm">{meetingRecordingName}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveMeetingRecording}
+                  className="text-red-600 hover:text-red-700 text-sm"
+                >
+                  Remove file
+                </button>
+              </div>
+            ) : (
+              <>
+                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <div className="flex text-sm text-gray-600 justify-center">
+                  <label
+                    htmlFor="meetingRecording"
+                    className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500"
+                  >
+                    <span>Upload Meeting Recording</span>
+                    <input
+                      id="meetingRecording"
+                      name="meetingRecording"
+                      type="file"
+                      className="sr-only"
+                      accept="video/*"
+                      onChange={handleMeetingRecordingUpload}
+                    />
+                  </label>
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  MP4, MOV, AVI, MKV up to 10MB
+                </p>
+              </>
+            )}
           </div>
-          <p className="mt-1 text-sm text-gray-500">
-            Paste your video conferencing link here
-          </p>
         </div>
 
         <div>
