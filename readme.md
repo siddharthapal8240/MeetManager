@@ -30,6 +30,7 @@ The **Smart Meeting Optimizer** is an intelligent platform that automates the sc
 - **Backend:** Node.js
 - **APIs:** Google APIs (Calendar, Meet), Speech-to-Text Services
 - **Automation:** Email notifications
+- **Cloud:** Cloudinary
 
 ## Installation
 1. Clone the repository:
@@ -38,7 +39,7 @@ The **Smart Meeting Optimizer** is an intelligent platform that automates the sc
    ```
 2. Navigate to the project directory:
    ```sh
-   cd smart-meeting-optimizer
+   cd MeetManager
    ```
 3. Install dependencies:
    ```sh
@@ -55,10 +56,10 @@ The **Smart Meeting Optimizer** is an intelligent platform that automates the sc
 3. Schedule a meeting and send invites.
 4. Record, transcribe, and summarize the meeting.
 5. Receive a detailed summary with key action points.
+6. User can iteract with our AI chatbot about the project 
 
 
-## License
-This project is licensed under the MIT License.
+
 
 ## Contact
-For collaboration or queries, contact **Siddhartha Pal** at [your-email@example.com].
+For collaboration or queries, contact **Siddhartha Pal** at [siddhartha.pal.official@gmail.com].
