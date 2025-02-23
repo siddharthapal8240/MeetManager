@@ -7,6 +7,11 @@ export const uploadAndSendEmails = async (req, res) => {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
+  const { eventName, date, summary } = req.body; // Expect these from the request
+  if (!eventName || !date || !summary) {
+    return res.status(400).json({ message: "Event name, date, and summary are required" });
+  }
+
   try {
     const filePath = req.file.path;
     const emailList = extractEmailsFromExcel(filePath);
@@ -18,8 +23,8 @@ export const uploadAndSendEmails = async (req, res) => {
         await transporter.sendMail({
           from: '"Sid" <sid@gmail.com>',
           to: email,
-          subject: "Test Email",
-          text: "Hello, this is a test email sent using Node.js and Nodemailer.",
+          subject: `${eventName} - ${date}`, // Subject with title and date
+          text: `Hello,\n\nHere is the summary for the meeting "${eventName}" held on ${date}:\n\n${summary}\n\nBest regards,\nSid`, // Body with summary
         });
         console.log(`Email sent to ${email}`);
       } catch (error) {
@@ -27,7 +32,7 @@ export const uploadAndSendEmails = async (req, res) => {
       }
     }
 
-    await fs.unlink(filePath); 
+    await fs.unlink(filePath); // Clean up the uploaded file
     res.json({ message: "Emails processed successfully!" });
   } catch (error) {
     console.error(error);

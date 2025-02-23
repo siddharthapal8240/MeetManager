@@ -1,5 +1,5 @@
 import express from 'express';
-import { createEvent } from '../controllers/eventController.js';
+import { createEvent, getPastEvents, aiChat } from '../controllers/eventController.js';
 import { check } from 'express-validator';
 import multer from 'multer';
 
@@ -34,7 +34,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit, adjust as needed
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 router.post(
@@ -42,7 +42,7 @@ router.post(
   upload.fields([
     { name: 'banner', maxCount: 1 },
     { name: 'excelFile', maxCount: 1 },
-    { name: 'meetingRecording', maxCount: 1 } // Added meetingRecording
+    { name: 'meetingRecording', maxCount: 1 }
   ]),
   [
     check('eventName').notEmpty().withMessage('Event name is required'),
@@ -53,5 +53,8 @@ router.post(
   ],
   createEvent
 );
+
+router.get('/past', getPastEvents);
+router.post('/ai-chat', aiChat);
 
 export default router;

@@ -7,6 +7,7 @@ import connectDB from './config/mongodb.js';
 import userRouter from './routes/userRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import videoRoutes from "./routes/videoRoutes.js";
+import emailRouter from './routes/emailRoutes.js';
 
 
 
@@ -28,6 +29,7 @@ app.get('/', (req, res) => res.send('Api working!'));
 app.use('/api/user', userRouter);
 app.use('/api/events', eventRoutes);
 app.use('/api', videoRoutes);
+app.use('/api/email', emailRouter);
 
 //Error handiling
 

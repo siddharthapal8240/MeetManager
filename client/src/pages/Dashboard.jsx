@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Users, Video, Clock, History, FileText, Download, X, Brain } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -10,12 +9,18 @@ const Dashboard = () => {
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [pastMeetings, setPastMeetings] = useState([]);
+  const [upcomingMeetings, setUpcomingMeetings] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [aiChat, setAIChat] = useState([{ role: 'assistant', content: 'Hello! How can I assist you with this meeting?' }]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false); // For typing animation
 
-  const upcomingMeetings = [
+  const hardcodedUpcomingMeetings = [
     {
       id: 1,
       title: 'Team Weekly Sync',
-      date: '2024-03-20',
+      date: '2025-03-20',
       time: '10:00 AM',
       attendees: 12,
       registered: 15,
@@ -24,7 +29,7 @@ const Dashboard = () => {
     {
       id: 2,
       title: 'Project Review',
-      date: '2024-03-21',
+      date: '2025-03-21',
       time: '2:00 PM',
       attendees: 8,
       registered: 10,
@@ -32,74 +37,43 @@ const Dashboard = () => {
     }
   ];
 
-  const pastMeetings = [
-    {
-      id: 3,
-      title: 'Sprint Planning',
-      date: '2024-03-15',
-      duration: '45 minutes',
-      attendees: 10,
-      recording: 'https://example.com/recording1.mp4',
-      summary: `# Sprint Planning Meeting Summary
+  useEffect(() => {
+    const fetchPastMeetings = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('http://localhost:4000/api/events/past');
+        const data = await response.json();
 
-## Key Points Discussed
-- Review of previous sprint achievements
-- Planning for next sprint goals
-- Resource allocation and team capacity
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch past meetings');
+        }
 
-## Action Items
-1. Update project timeline
-2. Schedule individual follow-ups
-3. Review technical requirements
+        const formattedMeetings = data.map(event => ({
+          id: event._id,
+          title: event.eventName,
+          date: new Date(event.date).toISOString().split('T')[0],
+          duration: event.duration || 'Unknown',
+          attendees: event.attendeeDetails?.joined?.length || 0,
+          recording: event.meetingRecording,
+          summary: event.transcription?.summary || 'No summary available',
+          attendeeDetails: event.attendeeDetails || null
+        }));
 
-## Decisions Made
-- Sprint duration set to 2 weeks
-- New feature prioritization agreed
-- Testing strategy approved`,
-      attendeeDetails: {
-        joined: [
-          { name: 'John Doe', email: 'john@example.com', joinTime: '10:00 AM', leaveTime: '10:45 AM' },
-          { name: 'Jane Smith', email: 'jane@example.com', joinTime: '10:02 AM', leaveTime: '10:45 AM' }
-        ],
-        notJoined: [
-          { name: 'Mike Johnson', email: 'mike@example.com', status: 'Registered but not attended' }
-        ]
+        setPastMeetings(formattedMeetings);
+      } catch (error) {
+        toast.error('Failed to load past meetings');
+        console.error('Error fetching past meetings:', error);
+      } finally {
+        setIsLoading(false);
       }
-    },
-    {
-      id: 4,
-      title: 'Client Presentation',
-      date: '2024-03-14',
-      duration: '60 minutes',
-      attendees: 15,
-      recording: 'https://example.com/recording2.mp4',
-      summary: `# Client Presentation Summary
+    };
 
-## Key Discussion Points
-- Product roadmap presentation
-- Client feedback and concerns
-- Next steps and timeline
-
-## Action Items
-1. Send follow-up documentation
-2. Schedule technical review
-3. Update project scope
-
-## Client Requests
-- Additional reporting features
-- Performance optimization
-- Integration requirements`,
-      attendeeDetails: {
-        joined: [
-          { name: 'Alice Brown', email: 'alice@example.com', joinTime: '2:00 PM', leaveTime: '3:00 PM' },
-          { name: 'Bob Wilson', email: 'bob@example.com', joinTime: '2:01 PM', leaveTime: '3:00 PM' }
-        ],
-        notJoined: [
-          { name: 'Carol Davis', email: 'carol@example.com', status: 'Registered but not attended' }
-        ]
-      }
+    if (activeTab === 'past') {
+      fetchPastMeetings();
+    } else {
+      setUpcomingMeetings(hardcodedUpcomingMeetings);
     }
-  ];
+  }, [activeTab]);
 
   const handleRecordingClick = (meeting) => {
     setSelectedMeeting(meeting);
@@ -116,9 +90,53 @@ const Dashboard = () => {
     setShowAttendeeModal(true);
   };
 
+  const handleAIClick = (meeting) => {
+    setSelectedMeeting(meeting);
+    setAIChat([{ role: 'assistant', content: 'Hello! How can I assist you with this meeting?' }]);
+    setShowAIModal(true);
+  };
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedMeeting) return;
+
+    const userMessage = { role: 'user', content: newMessage };
+    setAIChat(prev => [...prev, userMessage]);
+    setNewMessage('');
+    setIsTyping(true); // Start typing animation
+
+    try {
+      const response = await fetch('http://localhost:4000/api/events/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          summary: selectedMeeting.summary,
+          question: newMessage
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to get AI response');
+      }
+
+      setIsTyping(false); // Stop typing animation
+      const aiMessage = { role: 'assistant', content: data.response };
+      setAIChat(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Error calling AI chat endpoint:', error);
+      toast.error('Failed to get AI response');
+      setIsTyping(false); // Stop typing animation
+      setTimeout(() => {
+        setAIChat(prev => [...prev, { role: 'assistant', content: 'Sorry, I couldn’t find an answer to that. Please try again!' }]);
+      }, 1000); // Delay fallback message to simulate typing
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
       <div className="container mx-auto px-4 pt-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-md">
@@ -128,11 +146,10 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Meetings</p>
-                <p className="text-2xl font-bold">24</p>
+                <p className="text-2xl font-bold">{upcomingMeetings.length + pastMeetings.length}</p>
               </div>
             </div>
           </div>
-
           <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex items-center space-x-4">
               <div className="bg-green-100 p-3 rounded-full">
@@ -140,11 +157,12 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Attendees</p>
-                <p className="text-2xl font-bold">156</p>
+                <p className="text-2xl font-bold">
+                  {pastMeetings.reduce((sum, m) => sum + (m.attendees || 0), 0)}
+                </p>
               </div>
             </div>
           </div>
-
           <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex items-center space-x-4">
               <div className="bg-purple-100 p-3 rounded-full">
@@ -152,7 +170,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Hours Recorded</p>
-                <p className="text-2xl font-bold">48</p>
+                <p className="text-2xl font-bold">N/A</p>
               </div>
             </div>
           </div>
@@ -185,7 +203,9 @@ const Dashboard = () => {
           </div>
 
           <div className="p-6">
-            {activeTab === 'upcoming' ? (
+            {isLoading && activeTab === 'past' ? (
+              <div className="text-center py-8 text-gray-500">Loading past meetings...</div>
+            ) : activeTab === 'upcoming' ? (
               <div className="space-y-4">
                 {upcomingMeetings.map((meeting) => (
                   <div
@@ -208,7 +228,7 @@ const Dashboard = () => {
                           {meeting.registered} registered ({meeting.confirmed} confirmed)
                         </span>
                       </div>
-                      <button 
+                      <button
                         onClick={() => handleAttendeeClick(meeting)}
                         className="text-indigo-600 hover:text-indigo-700 font-medium"
                       >
@@ -220,85 +240,90 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {pastMeetings.map((meeting) => (
-                  <div
-                    key={meeting.id}
-                    className="flex flex-col p-4 border rounded-lg hover:bg-gray-50"
-                  >
-                    <div className="flex items-center space-x-4 mb-4">
-                      <History className="h-8 w-8 text-gray-600 flex-shrink-0" />
-                      <div>
-                        <h3 className="font-medium">{meeting.title}</h3>
-                        <p className="text-sm text-gray-500">
-                          {meeting.date} • {meeting.duration}
-                        </p>
+                {pastMeetings.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">No past meetings found.</div>
+                ) : (
+                  pastMeetings.map((meeting) => (
+                    <div
+                      key={meeting.id}
+                      className="flex flex-col p-4 border rounded-lg hover:bg-gray-50"
+                    >
+                      <div className="flex items-center space-x-4 mb-4">
+                        <History className="h-8 w-8 text-gray-600 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-medium">{meeting.title}</h3>
+                          <p className="text-sm text-gray-500">
+                            {meeting.date} • {meeting.duration}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                      <div className="flex items-center space-x-2">
-                        <Users className="h-5 w-5 text-gray-400" />
-                        <span className="text-sm text-gray-500">
-                          {meeting.attendees} attended
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {meeting.recording && (
-                          <button 
-                            onClick={() => handleRecordingClick(meeting)}
+                      <div className="flex flex-wrap gap-3">
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-5 w-5 text-gray-400" />
+                          <span className="text-sm text-gray-500">
+                            {meeting.attendees} attended
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {meeting.recording && (
+                            <button
+                              onClick={() => handleRecordingClick(meeting)}
+                              className="flex items-center space-x-1 px-3 py-1.5 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            >
+                              <Video className="h-4 w-4" />
+                              <span>Recording</span>
+                            </button>
+                          )}
+                          {meeting.summary && (
+                            <button
+                              onClick={() => handleSummaryClick(meeting)}
+                              className="flex items-center space-x-1 px-3 py-1.5 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span>Report</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleAttendeeClick(meeting)}
                             className="flex items-center space-x-1 px-3 py-1.5 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
                           >
-                            <Video className="h-4 w-4" />
-                            <span>Recording</span>
+                            <Users className="h-4 w-4" />
+                            <span>Attendees</span>
                           </button>
-                        )}
-                        {meeting.summary && (
-                          <button 
-                            onClick={() => handleSummaryClick(meeting)}
-                            className="flex items-center space-x-1 px-3 py-1.5 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          >
-                            <FileText className="h-4 w-4" />
-                            <span>Report</span>
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => handleAttendeeClick(meeting)}
-                          className="flex items-center space-x-1 px-3 py-1.5 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        >
-                          <Users className="h-4 w-4" />
-                          <span>Attendees</span>
-                        </button>
-                        <button
-                          onClick={() => setShowAIModal(true)}
-                          className="flex items-center space-x-1 px-3 py-1.5 rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-                        >
-                          <Brain className="h-4 w-4" />
-                          <span>AI Chat</span>
-                        </button>
+                          {meeting.summary && (
+                            <button
+                              onClick={() => handleAIClick(meeting)}
+                              className="flex items-center space-x-1 px-3 py-1.5 rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                            >
+                              <Brain className="h-4 w-4" />
+                              <span>AI Chat</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Recording Modal */}
       {showRecordingModal && selectedMeeting && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-3xl w-full">
+          <div className="bg-white rounded-lg w-full max-w-4xl p-6 shadow-lg">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Meeting Recording</h3>
-              <button 
+              <h3 className="text-xl font-semibold text-gray-900">Meeting Recording: {selectedMeeting.title}</h3>
+              <button
                 onClick={() => setShowRecordingModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 focus:outline-none"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <div className="aspect-w-16 aspect-h-9 mb-4">
-              <video controls className="rounded-lg w-full">
+            <div className="mb-4">
+              <video controls className="w-full rounded-lg">
                 <source src={selectedMeeting.recording} type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
@@ -307,7 +332,7 @@ const Dashboard = () => {
               <a
                 href={selectedMeeting.recording}
                 download
-                className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
               >
                 <Download className="h-4 w-4" />
                 <span>Download Recording</span>
@@ -317,23 +342,24 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Summary Modal */}
+      {/* Updated Report Modal */}
       {showSummaryModal && selectedMeeting && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-2xl w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Meeting Summary</h3>
-              <button 
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-lg">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Meeting Report</h3>
+              <button
                 onClick={() => setShowSummaryModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 focus:outline-none"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <div className="prose max-w-none mb-4">
-              <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded-lg">
-                {selectedMeeting.summary}
-              </pre>
+            <div className="space-y-4 mb-6">
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">{selectedMeeting.title}</h4>
+                <p className="text-gray-600 leading-relaxed">{selectedMeeting.summary}</p>
+              </div>
             </div>
             <div className="flex justify-end">
               <button
@@ -342,26 +368,25 @@ const Dashboard = () => {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `${selectedMeeting.title}-summary.md`;
+                  a.download = `${selectedMeeting.title}-report.md`;
                   a.click();
                 }}
-                className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
               >
                 <Download className="h-4 w-4" />
-                <span>Download Summary</span>
+                <span>Download Report</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Attendee Modal */}
       {showAttendeeModal && selectedMeeting && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg max-w-2xl w-full">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">Attendee Details</h3>
-              <button 
+              <button
                 onClick={() => setShowAttendeeModal(false)}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -387,15 +412,14 @@ const Dashboard = () => {
                           <tr key={index}>
                             <td className="px-6 py-4 whitespace-nowrap">{attendee.name}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{attendee.email}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{attendee.joinTime}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{attendee.leaveTime}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{attendee.joinTime || 'N/A'}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{attendee.leaveTime || 'N/A'}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 </div>
-
                 <div>
                   <h4 className="font-medium text-lg mb-2">Registered but Not Joined</h4>
                   <div className="bg-gray-50 rounded-lg overflow-hidden">
@@ -412,7 +436,7 @@ const Dashboard = () => {
                           <tr key={index}>
                             <td className="px-6 py-4 whitespace-nowrap">{attendee.name}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{attendee.email}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-red-600">{attendee.status}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-red-600">{attendee.status || 'N/A'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -429,7 +453,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* AI Assistant Modal */}
       {showAIModal && selectedMeeting && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
@@ -445,7 +468,7 @@ const Dashboard = () => {
                 <X className="h-6 w-6" />
               </button>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {aiChat.map((message, index) => (
                 <div
@@ -463,8 +486,17 @@ const Dashboard = () => {
                   </div>
                 </div>
               ))}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 p-3 rounded-lg flex items-center space-x-1">
+                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
+                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                    <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></span>
+                  </div>
+                </div>
+              )}
             </div>
-            
+
             <form onSubmit={handleSendMessage} className="p-4 border-t">
               <div className="flex space-x-2">
                 <input

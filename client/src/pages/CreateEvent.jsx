@@ -7,8 +7,8 @@ const CreateEvent = () => {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [meetingRecording, setMeetingRecording] = useState(null); // Changed from meetingLink
-  const [meetingRecordingName, setMeetingRecordingName] = useState(''); // For display
+  const [meetingRecording, setMeetingRecording] = useState(null);
+  const [meetingRecordingName, setMeetingRecordingName] = useState('');
   const [registrationType, setRegistrationType] = useState('form');
   const [formFields, setFormFields] = useState([
     { name: 'Name', type: 'text', required: true },
@@ -66,7 +66,7 @@ const CreateEvent = () => {
   const handleMeetingRecordingUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const validExtensions = ['.mp4', '.mov', '.avi', '.mkv']; // Add more as needed
+      const validExtensions = ['.mp4', '.mov', '.avi', '.mkv'];
       const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
       
       if (!validExtensions.includes(fileExtension)) {
@@ -74,7 +74,7 @@ const CreateEvent = () => {
         return;
       }
       
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit, adjust as needed
+      if (file.size > 10 * 1024 * 1024) {
         toast.error('File size exceeds 10MB limit');
         return;
       }
@@ -130,7 +130,7 @@ const CreateEvent = () => {
       formData.append('description', description);
       formData.append('date', date);
       formData.append('time', time);
-      formData.append('meetingRecording', meetingRecording); // Changed from meetingLink
+      formData.append('meetingRecording', meetingRecording);
       formData.append('registrationType', registrationType);
       
       if (registrationType === 'form') {
@@ -143,15 +143,15 @@ const CreateEvent = () => {
         formData.append('excelFile', excelFile);
       }
 
-      const response = await fetch('http://localhost:4000/api/events/create', {
+      const eventResponse = await fetch('http://localhost:4000/api/events/create', {
         method: 'POST',
         body: formData,
       });
 
-      const data = await response.json();
+      const eventData = await eventResponse.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to create event');
+      if (!eventResponse.ok) {
+        throw new Error(eventData.message || 'Failed to create event');
       }
 
       toast.success('Event created successfully!', {
@@ -160,8 +160,32 @@ const CreateEvent = () => {
       });
 
       if (registrationType === 'form') {
-        setRegistrationLink(data.registrationLink);
+        setRegistrationLink(eventData.registrationLink);
         setShowSuccess(true);
+      }
+
+      // Send emails if Excel registration type
+      if (registrationType === 'excel' && excelFile) {
+        const emailFormData = new FormData();
+        emailFormData.append('file', excelFile);
+        emailFormData.append('eventName', eventName);
+        emailFormData.append('date', date);
+        emailFormData.append('summary', eventData.transcription?.summary || 'No summary available'); // Assuming summary comes from transcription
+
+        const emailResponse = await fetch('http://localhost:4000/api/email/upload', {
+          method: 'POST',
+          body: emailFormData,
+        });
+
+        const emailData = await emailResponse.json();
+        if (!emailResponse.ok) {
+          throw new Error(emailData.message || 'Failed to send emails');
+        }
+
+        toast.success('Emails sent to participants successfully!', {
+          duration: 4000,
+          position: 'top-right',
+        });
       }
 
       // Reset form
