@@ -10,7 +10,6 @@ const EventDetails = () => {
   ]);
   const [newMessage, setNewMessage] = useState('');
 
-  // Mock event data (replace with actual data fetching)
   const event = {
     title: 'Team Weekly Sync',
     description: 'Weekly team sync to discuss project progress and upcoming tasks.',
@@ -19,7 +18,7 @@ const EventDetails = () => {
     meetLink: 'https://meet.google.com/abc-defg-hij',
     banner: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?ixlib=rb-1.2.1&auto=format&fit=crop&w=1600&q=80',
     registrationLink: 'https://meetmanager.com/register/abc123',
-    isPast: true, // Add this to determine if it's a past meeting
+    isPast: true, 
     attendees: [
       { id: 1, name: 'John Doe', email: 'john@example.com', status: 'confirmed' },
       { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'pending' },
