@@ -34,7 +34,7 @@ The **Smart Meeting Optimizer** is an intelligent platform that automates the sc
 ## Installation
 1. Clone the repository:
    ```sh
-   git clone https://github.com/your-username/smart-meeting-optimizer.git
+   git clone https://github.com/siddharthapal8240/MeetManager.git
    ```
 2. Navigate to the project directory:
    ```sh
@@ -56,9 +56,6 @@ The **Smart Meeting Optimizer** is an intelligent platform that automates the sc
 4. Record, transcribe, and summarize the meeting.
 5. Receive a detailed summary with key action points.
 
-## Contributors
-- **Siddhartha Pal** (Frontend - React.js)
-- Team Members (Backend & API Integration)
 
 ## License
 This project is licensed under the MIT License.
